@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portfolio TV Dashboard</title>
+  <style>
+    :root{
+      --bg:#0b0f14; --panel:#0f1726; --muted:#7b8ba5; --ink:#e5ecf5; --line:rgba(255,255,255,.08);
+      --accent:#16a34a; --accent-2:#22c55e; --warn:#fbbf24; --danger:#f97316;
+    }
+    *{box-sizing:border-box;}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--ink);}
+    body{display:flex;flex-direction:column;}
+    header{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(12,17,26,.85);backdrop-filter:blur(6px);position:sticky;top:0;z-index:2;}
+    h1{margin:0;font-size:18px;font-weight:700;letter-spacing:.2px;}
+    h2{margin:0;font-size:16px;font-weight:700;}
+    .muted{color:var(--muted);}
+    .spacer{flex:1;}
+    .logo{height:28px;width:auto;display:block;}
+    .pill{border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;background:transparent;color:var(--ink);}
+    .pill.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));border-color:transparent;color:#04110a;box-shadow:0 6px 18px rgba(34,197,94,.35);}
+    .pill-row{display:flex;gap:8px;flex-wrap:wrap;}
+    .btn{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 12px;cursor:pointer;}
+    .btn:hover{border-color:#2c3952;}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:10px 12px;}
+    .kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+    .card{background:linear-gradient(180deg,#121b2b,#0f1726);border:1px solid var(--line);border-radius:14px;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+    .kpi-grid .card{height:92px;display:flex;flex-direction:column;justify-content:space-between;}
+    .card h3{margin:0 0 4px;font-size:12px;font-weight:600;color:var(--muted);}
+    .metric{font-size:22px;font-weight:800;letter-spacing:.5px;margin:0;}
+    .delta{font-size:11px;margin-top:2px;}
+    .bar-wrap{display:flex;flex-direction:column;gap:10px;min-height:140px;justify-content:center;}
+    .bar-row{display:grid;grid-template-columns:52px 1fr 100px;align-items:center;gap:10px;font-size:12px;color:var(--muted);}
+    .bar-label{text-align:right;color:var(--ink);font-weight:600;}
+    .bar-value{text-align:right;font-variant-numeric:tabular-nums;}
+    .bar{width:100%;height:10px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden;position:relative;}
+    .bar span{display:block;height:100%;}
+    .bar.vacancy span{background:linear-gradient(90deg,var(--accent),var(--accent-2));}
+    .bar.arrears span{background:linear-gradient(90deg,#0ea5e9,#6366f1);}
+    .trend{height:180px;margin-top:10px;}
+    .trend svg{width:100%;height:100%;overflow:hidden;}
+    .trend .area{fill:rgba(99,102,241,.25);stroke:none;}
+    .trend .line{fill:none;stroke:#4f46e5;stroke-width:2;}
+    .trend .trendline{fill:none;stroke-width:1.5;stroke-dasharray:4 3;opacity:.95;}
+    .trend .forecast-line{fill:none;stroke:#fbbf24;stroke-width:1.5;stroke-dasharray:6 4;opacity:.95;}
+    .trend .forecast-area{fill:rgba(251,191,36,0.12);stroke:none;}
+    .table{width:100%;border-collapse:collapse;font-size:12px;}
+    .table th,.table td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;}
+    .table th{color:var(--muted);font-weight:600;}
+    .split{display:grid;grid-template-columns:0.45fr 0.55fr;gap:10px;margin:0 12px 12px;}
+    .split.vacancy-grid{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));}
+    .split.arrears-grid{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));}
+    @media(max-width:1200px){.split{grid-template-columns:1fr;}}
+    .status-line{font-size:12px;color:var(--muted);padding:4px 18px 0;}
+    .section{margin-top:6px;}
+    .section-head{display:flex;align-items:center;gap:10px;padding:0 12px;margin:4px 0;}
+    .two-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(480px,1fr));gap:12px;margin:8px;}
+    @media(max-width:1100px){.two-col{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+  <header>
+    <img src="./onward_logo.png" alt="Onward Homes" class="logo" />
+    <h1>Portfolio Snapshot</h1>
+    <div class="pill-row" id="teamTabs"></div>
+    <div class="spacer"></div>
+    <button class="btn" id="pauseBtn">Pause auto-rotate</button>
+    <div class="muted" id="clock"></div>
+  </header>
+
+  <div class="status-line" id="statusLine">Loading data...</div>
+
+  <div class="two-col">
+    <div class="section" id="sectionVacancy">
+      <div class="section-head"><h2>Vacancy</h2><span class="muted" id="vacancyStatus"></span></div>
+      <div class="grid kpi-grid" id="vacancyKpiGrid"></div>
+      <div class="split vacancy-grid">
+        <div class="card">
+          <h3>Team Comparison (vacant units)</h3>
+          <div class="bar-wrap" id="vacancyTeamBars"></div>
+        </div>
+        <div class="card">
+          <h3>Vacancy Trend</h3>
+          <div class="trend" id="vacancyTrend"></div>
+        </div>
+        <div class="card">
+          <h3>Vacancy by Building</h3>
+          <table class="table" id="vacancyBuildingsTable">
+            <thead><tr><th>Building</th><th>Team</th><th>Vacant</th><th>Ready</th><th>Rate</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h3>Top Vacancies (by days)</h3>
+          <table class="table" id="vacancyTopTable">
+            <thead><tr><th>Unit</th><th>Team</th><th>Vacant (d)</th><th>Ready?</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sectionArrears">
+      <div class="section-head"><h2>Arrears</h2><span class="muted" id="arrearsStatus"></span></div>
+      <div class="grid kpi-grid" id="arrearsKpiGrid"></div>
+      <div class="split arrears-grid">
+        <div class="card">
+          <h3>Team Comparison (arrears)</h3>
+          <div class="bar-wrap" id="arrearsTeamBars"></div>
+        </div>
+        <div class="card">
+          <h3>Arrears Trend</h3>
+          <div class="trend" id="arrearsTrend"></div>
+        </div>
+        <div class="card">
+          <h3>Arrears by Building</h3>
+          <table class="table" id="arrearsBuildingsTable">
+            <thead><tr><th>Building</th><th>Team</th><th>Accounts</th><th>Current owed</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h3>Top Arrears (by balance)</h3>
+          <table class="table" id="arrearsTopTable">
+            <thead><tr><th>Account</th><th>Unit</th><th>Team</th><th>Balance</th><th>Status</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script src="./raw_data_compiled.js"></script>
+<script>
+  const AREA_PORTFOLIOS = [
+    { key: "RS1", areaManager: "RS1", buildings: ["Anthonian Court","Carroll Place","Columbus Manor","Crossroads Court","Francis Klein Centre","St. James Court","St. Paul's Villa"] },
+    { key: "RS2", areaManager: "RS2", buildings: ["Bob Ward Residence","Heritage Gardens","Horizon Park","Horizon View","Horizon West","Horizon 12","Place Cam Helene","Albert House","Glasswaters House","Good Cheer House","Hamilton House","Hunter House","Keith House","Marguerite House","Miner House","Roberts House","Horizon 31"] },
+    { key: "RS3", areaManager: "RS3", buildings: ["Alice Bissett Place","Bishop's Manor","Columbus Place","Horizon Ridge","Horizon 8","Horizon 14","The Elan","Triwood"] },
+    { key: "RS4", areaManager: "RS4", buildings: ["Murdoch Manor","George C King Tower"] },
+  ];
+
+  const PROPERTY_INFO = {"Anthonian Court":{"code":"51","units":53},"Carroll Place":{"code":"52","units":100},"Columbus Manor":{"code":"53","units":99},"Crossroads Court":{"code":"54","units":50},"Francis Klein Centre":{"code":"55","units":104},"St. James Court":{"code":"56","units":23},"St. Paul's Villa":{"code":"57","units":50},"Murdoch Manor":{"code":"58","units":360},"George C King Tower":{"code":"59","units":143},"Alice Bissett Place":{"code":"98","units":114},"Bishop's Manor":{"code":"80","units":104},"Bob Ward Residence":{"code":"79","units":61},"Columbus Place":{"code":"81","units":77},"Heritage Gardens":{"code":"75","units":95},"Horizon 8":{"code":"93","units":49},"Horizon 12":{"code":"96","units":33},"Horizon 14":{"code":"84","units":60},"Horizon Park":{"code":"86","units":35},"Horizon Ridge":{"code":"76","units":65},"Horizon View":{"code":"83","units":201},"Horizon West":{"code":"85","units":108},"Place Cam Helene":{"code":"97","units":44},"The Elan":{"code":"73","units":62},"Triwood":{"code":"77","units":26},"Horizon 31":{"code":"74","units":29},"Albert House":{"code":"87","units":1},"Glasswaters House":{"code":"90","units":1},"Good Cheer House":{"code":"94","units":1},"Hamilton House":{"code":"92","units":1},"Hunter House":{"code":"72","units":1},"Keith House":{"code":"88","units":3},"Marguerite House":{"code":"71","units":1},"Miner House":{"code":"89","units":1},"Roberts House":{"code":"70","units":1}};
+
+  const TEAMS = ["All", "RS1", "RS2", "RS3", "RS4"];
+  let currentTeam = "RS1";
+  let autoRotate = true;
+  let rows = [];
+  let arrearsRows = [];
+  let arrearsHistory = {};
+  let arrearsTrendByTeam = {};
+  let vacancyTrendByTeam = {};
+
+  function vacancyRateColor(rate){
+    const clamped = Math.max(0, Math.min(3, rate)); // cap at 3%+
+    const t = clamped / 3; // 0 -> green, 1 -> red
+    const hue = 120 * (1 - t); // 120 green to 0 red
+    return `hsl(${hue}, 80%, 50%)`;
+  }
+
+
+  function normalizeBuilding(name){
+    const raw = String(name || "");
+    const base = raw.split("-")[0].trim();
+    const key = base.toLowerCase();
+    const aliases = {
+      "horizon on 12th":"Horizon 12",
+      "horizon 12th":"Horizon 12"
+    };
+    return aliases[key] || base;
+  }
+  const teamLookup = (()=>{ const m=new Map(); AREA_PORTFOLIOS.forEach(p=>p.buildings.forEach(b=>m.set(b,p.key))); return m;})();
+  const codeToBuilding = (()=>{ const m=new Map(); Object.entries(PROPERTY_INFO).forEach(([name,info])=>{ if(info.code){ m.set(String(info.code), name); } }); return m;})();
+
+  function enrichVacancy(raw){
+    return raw.map(r => {
+      const building = normalizeBuilding(r["Building"]);
+      const team = teamLookup.get(building) || "Unassigned";
+      const vacantDays = parseInt(String(r["Vacant"]||"").trim(), 10);
+      const turnDays = parseInt(String(r["Turnover"]||"").trim(), 10);
+      // return { ...r, building, team, vacantDays: Number.isFinite(vacantDays)?vacantDays:0, turnoverDays: Number.isFinite(turnDays)?turnDays:0, rentReady: String(r["Rent Ready"]||"").toLowerCase().startsWith("y") };
+    });
+  }
+
+  function parseDateMaybe(str){
+    if(!str) return null;
+    const d = new Date(str);
+    if(!isNaN(d)) return d;
+    const parts = str.split(/[\\/]/);
+    if(parts.length===3){
+      const [m,d2,y]=parts; const yy = y.length===2 ? ("20"+y) : y;
+      const alt = new Date(`${yy}-${m}-${d2}`); if(!isNaN(alt)) return alt;
+    }
+    return null;
+  }
+  function daysFromNow(d){ if(!d) return Infinity; return Math.round((d - Date.now())/(1000*60*60*24)); }
+  function totalUnits(team){
+    if(team==="All") return Object.values(PROPERTY_INFO).reduce((s,v)=>s+Number(v.units||0),0);
+    const bucket = AREA_PORTFOLIOS.find(p=>p.key===team); if(!bucket) return 0;
+    return bucket.buildings.reduce((s,b)=> s + Number((PROPERTY_INFO[b]||{}).units||0),0);
+  }
+
+  function vacancyStats(team){
+    const filtered = rows.filter(r => team==="All" ? true : r.team===team);
+    const vacant = filtered.filter(r => String(r["Tenant Status"]||"").toLowerCase().includes("vacant"));
+    const rentReadyYes = vacant.filter(r=>r.rentReady).length;
+    const rentReadyNo = vacant.length - rentReadyYes;
+    const avgVacancy = vacant.length ? (vacant.reduce((s,r)=>s+r.vacantDays,0)/vacant.length) : 0;
+    const maxVacancy = vacant.reduce((m,r)=>Math.max(m,r.vacantDays),0);
+    const avgTurnover = vacant.length ? (vacant.reduce((s,r)=>s+r.turnoverDays,0)/vacant.length) : 0;
+    const soon = vacant.filter(r => { const days = daysFromNow(parseDateMaybe(r["Available"])); return days>=0 && days<=14; }).length;
+    const units = totalUnits(team);
+    return { totalVacant: vacant.length, rentReadyYes, rentReadyNo, avgVacancy: Math.round(avgVacancy), maxVacancy, avgTurnover: Math.round(avgTurnover), availableSoon: soon, unitCount: units, vacancyRate: units ? (vacant.length/units*100) : 0, top: [...vacant].sort((a,b)=>b.vacantDays - a.vacantDays).slice(0,8) };
+  }
+
+  function arrearsStats(team){
+    const filtered = arrearsRows.filter(r => team==="All" ? true : r.team===team);
+    const accounts = filtered.length;
+    const sum = k => filtered.reduce((s,r)=> s + Number(r[k]||0), 0);
+    const currentOwed = sum("current");
+    const b0_30 = sum("b0_30");
+    const prepayments = sum("prepayments");
+    const b31_60 = sum("b31_60");
+    const b61_90=sum("b61_90"), b91_120=sum("b91_120");
+    const b31_120 = b31_60 + b61_90 + b91_120;
+    const over120=sum("over120");
+    const avgBalance = accounts ? currentOwed/accounts : 0;
+    const maxBalance = filtered.reduce((m,r)=>Math.max(m, Number(r.current||0)), 0);
+    const top = [...filtered].sort((a,b)=>Number(b.current||0)-Number(a.current||0)).slice(0,8);
+    return { accounts, currentOwed, b0_30, b31_60, b31_120, over120, prepayments, avgBalance, maxBalance, top };
+  }
+
+  const fmtCur = n => (n||0).toLocaleString(undefined,{style:"currency",currency:"CAD",maximumFractionDigits:0});
+
+  function computeTrendLine(points){
+    if(!points || points.length < 2) return null;
+    const n = points.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    for(let i=0;i<n;i++){
+      const x = i;
+      const y = Number(points[i].v || 0);
+      sumX += x; sumY += y; sumXY += x*y; sumX2 += x*x;
+    }
+    const denom = n*sumX2 - sumX*sumX;
+    if(denom === 0) return null;
+    const slope = (n*sumXY - sumX*sumY) / denom;
+    const intercept = (sumY - slope*sumX) / n;
+    return { y0: intercept, y1: intercept + slope*(n-1) };
+  }
+
+  function buildSmoothPath(pts){
+    if(!pts || pts.length < 2) return { path:"" };
+    const tension = 0.18;
+    const segs = [];
+    for(let i=0;i<pts.length-1;i++){
+      const p0 = pts[i-1] || pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i+1];
+      const p3 = pts[i+2] || p2;
+      const cp1x = p1.x + (p2.x - p0.x) * tension;
+      const cp1y = p1.y + (p2.y - p0.y) * tension;
+      const cp2x = p2.x - (p3.x - p1.x) * tension;
+      const cp2y = p2.y - (p3.y - p1.y) * tension;
+      if(i===0) segs.push(`M${p1.x},${p1.y}`);
+      segs.push(`C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`);
+    }
+    return { path: segs.join(' ') };
+  }
+
+  function seasonalDayFactor(points, kind){
+    const buckets = Array.from({length:31}, ()=>[]);
+    let total = 0, count = 0;
+    points.forEach(p=>{
+      const day = new Date(p.ts).getDate();
+      if(day>=1 && day<=31){
+        buckets[day-1].push(p.v);
+        total += p.v; count += 1;
+      }
+    });
+    const overallAvg = count ? total/count : 0;
+    return function(ts){
+      const day = new Date(ts).getDate();
+      const bucket = buckets[day-1] || [];
+      let factor = 1;
+      if(bucket.length >= 4 && overallAvg > 0){
+        const avg = bucket.reduce((s,v)=>s+v,0)/bucket.length;
+        factor = avg/overallAvg;
+      } else {
+        if(kind === "arrears"){
+          if(day <= 5) factor = 1.10;
+          else if(day >= 26) factor = 0.94;
+        } else {
+          if(day >= 25) factor = 1.10;
+          else if(day <= 5) factor = 0.94;
+        }
+      }
+      return Math.min(1.35, Math.max(0.72, factor));
+    };
+  }
+
+  function generateForecast(points, kind){
+    if(!points || points.length < 2) return [];
+    const sorted = [...points].sort((a,b)=>a.ts-b.ts);
+    const deltas = [];
+    for(let i=1;i<sorted.length;i++){
+      deltas.push(sorted[i].ts - sorted[i-1].ts);
+    }
+    deltas.sort((a,b)=>a-b);
+    const dayMs = 1000*60*60*24;
+    const medianDelta = deltas.length ? deltas[Math.floor(deltas.length/2)] : (dayMs*7);
+    const stepMs = Math.max(medianDelta, dayMs); // respect observed cadence, min daily
+    const horizonSteps = Math.max(8, Math.round((60*dayMs)/stepMs)); // ~2 months look-ahead, >=8 steps
+
+    const seasonFactor = seasonalDayFactor(sorted, kind);
+    // De-season the history for smoother slope estimation
+    const deseasoned = sorted.map(p => ({ ts: p.ts, v: seasonFactor(p.ts) ? p.v / seasonFactor(p.ts) : p.v }));
+
+    // Holt's linear (damped) smoothing on deseasoned series
+    const alpha = 0.35, beta = 0.15, damp = 0.9;
+    let level = deseasoned[0].v;
+    let trend = deseasoned.length > 1 ? deseasoned[1].v - deseasoned[0].v : 0;
+    for(let i=1;i<deseasoned.length;i++){
+      const val = deseasoned[i].v;
+      const prevLevel = level;
+      level = alpha * val + (1-alpha) * (level + trend);
+      trend = beta * (level - prevLevel) + (1-beta) * trend;
+    }
+    const lastTs = sorted[sorted.length-1].ts;
+    const lastSeasoned = sorted[sorted.length-1].v;
+    const forecast = [];
+    for(let i=1;i<=horizonSteps;i++){
+      const ts = lastTs + stepMs * i;
+      // damped trend accumulation
+      const dampedSteps = (1 - Math.pow(damp, i)) / (1 - damp);
+      const base = level + trend * dampedSteps;
+      const val = Math.max(0, base * seasonFactor(ts));
+      forecast.push({ ts, v: val, forecast: true });
+    }
+    // softly constrain the first forecast point toward last observed to avoid cliffs
+    if(forecast.length){
+      const first = forecast[0];
+      const blend = 0.5;
+      first.v = first.v* (1-blend) + lastSeasoned * blend;
+    }
+    return forecast;
+  }
+
+  function renderVacancy(team){
+    const stats = vacancyStats(team);
+    document.getElementById("vacancyStatus").textContent = `Showing ${team} | ${stats.totalVacant} vacancies`;
+    const cards = [
+      { title:"Vacancy rate", value: stats.vacancyRate.toFixed(1)+"%", sub:`${stats.unitCount} units` },
+      { title:"Vacant units", value: stats.totalVacant },
+      { title:"Rent ready", value: stats.rentReadyYes, sub:`${stats.rentReadyNo} not ready` },
+      { title:"Avg vacancy (days)", value: stats.avgVacancy, sub:`Max ${stats.maxVacancy}` },
+      { title:"Avg turnover (days)", value: stats.avgTurnover },
+      { title:"Available in 14 days", value: stats.availableSoon },
+    ];
+    document.getElementById("vacancyKpiGrid").innerHTML = cards.map(c=>`
+      <div class="card"><h3>${c.title}</h3><p class="metric">${c.value ?? 0}</p>${c.sub?`<div class="delta">${c.sub}</div>`:""}</div>
+    `).join("");
+    const statsByTeam = TEAMS.filter(t=>t!=="All")
+      .map(t=>({team:t, stats: vacancyStats(t)}))
+      .sort((a,b)=>b.stats.totalVacant - a.stats.totalVacant);
+    const maxVal = Math.max(...statsByTeam.map(x=>x.stats.totalVacant),1);
+    document.getElementById("vacancyTeamBars").innerHTML = statsByTeam.map(({team,stats})=>`
+      <div class="bar-row">
+        <div class="bar-label">${team}</div>
+        <div class="bar vacancy"><span style="width:${(stats.totalVacant/maxVal)*100}%;background:${vacancyRateColor(stats.vacancyRate)}"></span></div>
+        <div class="bar-value">${stats.totalVacant} - ${stats.vacancyRate.toFixed(1)}%</div>
+      </div>
+    `).join("");
+    document.querySelector("#vacancyTopTable tbody").innerHTML = stats.top.map(r=>`
+      <tr><td>${r.building} ${String(r["Suite"]||"").trim()}</td><td>${r.team}</td><td>${r.vacantDays}</td><td>${r.rentReady?"Yes":"No"}</td></tr>
+    `).join("");
+    renderVacancyTrend(team);
+    renderVacancyBuildings(team);
+  }
+
+  function renderArrears(team){
+    const statusEl = document.getElementById("arrearsStatus");
+    try{
+      const stats = arrearsStats(team);
+      statusEl.textContent = `Showing ${team} | ${stats.accounts} accounts | ${fmtCur(stats.currentOwed)}`;
+      const cards = [
+        { title:"Current owed", value: fmtCur(stats.currentOwed) },
+        { title:"Prepayments", value: fmtCur(stats.prepayments) },
+        { title:"Accounts", value: stats.accounts },
+        { title:"0-30", value: fmtCur(stats.b0_30) },
+        { title:"31-120", value: fmtCur(stats.b31_120) },
+        { title:"Over 120", value: fmtCur(stats.over120) },
+      ];
+      document.getElementById("arrearsKpiGrid").innerHTML = cards.map(c=>`
+        <div class="card"><h3>${c.title}</h3><p class="metric">${c.value ?? 0}</p>${c.sub?`<div class="delta">${c.sub}</div>`:""}</div>
+      `).join("");
+      const statsByTeam = TEAMS.filter(t=>t!=="All")
+        .map(t=>({team:t, stats: arrearsStats(t)}))
+        .sort((a,b)=>b.stats.currentOwed - a.stats.currentOwed);
+      const maxVal = Math.max(...statsByTeam.map(x=>x.stats.currentOwed),1);
+      document.getElementById("arrearsTeamBars").innerHTML = statsByTeam.map(({team,stats})=>`
+        <div class="bar-row">
+          <div class="bar-label">${team}</div>
+          <div class="bar arrears"><span style="width:${(stats.currentOwed/maxVal)*100}%"></span></div>
+          <div class="bar-value">${fmtCur(stats.currentOwed)}</div>
+        </div>
+      `).join("");
+      document.querySelector("#arrearsTopTable tbody").innerHTML = stats.top.map(r=>{
+        const unit = r.suite ?? r.unit ?? r.Unit ?? r.Suite ?? r["Suite"] ?? "";
+        return `
+        <tr>
+          <td>${r.buildingName || r.Name || r.property || ""}</td>
+          <td>${unit}</td>
+          <td>${r.team||""}</td>
+          <td>${fmtCur(r.current||0)}</td>
+          <td>${r.agingStatus||r.Status||""}</td>
+        </tr>
+      `;
+      }).join("");
+      renderArrearsTrend(team);
+      renderArrearsBuildings(team);
+    } catch(err){
+      statusEl.textContent = `Arrears load error: ${err.message||err}`;
+      document.getElementById("arrearsKpiGrid").innerHTML = "";
+      document.getElementById("arrearsTeamBars").innerHTML = "";
+      document.querySelector("#arrearsTopTable tbody").innerHTML = "";
+    }
+  }
+
+  function renderArrearsTrend(team){
+    const container = document.getElementById("arrearsTrend");
+    const points = arrearsTrendByTeam[team] || [];
+    if(!points.length){ container.innerHTML = '<div class="muted" style="font-size:12px;">No trend data</div>'; return; }
+    const forecast = generateForecast(points, "arrears");
+    const allPoints = [...points, ...forecast];
+    const w = container.clientWidth || 300;
+    const h = container.clientHeight || 180;
+    const minY = 0;
+    const vals = allPoints.map(p=>p.v).sort((a,b)=>a-b);
+    const p95 = vals.length ? vals[Math.floor(vals.length*0.95)] : 1;
+    const rawMax = Math.max(...vals, 1);
+    let maxY = Math.max(p95 || 1, (points[points.length-1]||{}).v || 1, rawMax*0.6); // soften spikes
+    const trend = computeTrendLine(points);
+    const slopeDown = trend ? ((trend.y1 - trend.y0) < 0) : null;
+    const seriesStroke = slopeDown===null ? '#4f46e5' : (slopeDown ? '#16a34a' : '#f97316');
+    const seriesFill = slopeDown===null ? 'rgba(99,102,241,0.25)' : (slopeDown ? 'rgba(22,163,74,0.2)' : 'rgba(249,115,22,0.2)');
+    const trendColor = trend ? (slopeDown ? 'var(--accent)' : 'var(--danger)') : null;
+    if(trend){ maxY = Math.max(maxY, trend.y0, trend.y1, 1); }
+    const padLeft = 64, padRight = 90, padY = 24;
+    const xs = (i)=> padLeft + (w - padLeft - padRight) * (i/((allPoints.length-1) || 1));
+    const ys = (v)=> h - padY - (h - padY*2) * (v - minY) / (maxY - minY || 1);
+    const toY = (v)=> ys(Math.max(minY, Math.min(maxY, v)));
+    const last = points[points.length-1];
+    const lastIndex = points.length-1;
+    const lastX = xs(lastIndex), lastY = ys(last.v);
+    const lastLabel = `${fmtCur(last.v)}`;
+    const pts = points.map((p,i)=>({x:xs(i), y:ys(p.v)}));
+    const forecastPts = forecast.map((p,i)=>({x:xs(points.length + i), y:ys(p.v)}));
+    const { path } = buildSmoothPath(pts);
+    const baseY = h - padY;
+    const areaPath = pts.length ? [
+      `M${pts[0].x},${baseY}`,
+      `L${pts[0].x},${pts[0].y}`,
+      path,
+      `L${pts[pts.length-1].x},${baseY}`,
+      `L${pts[0].x},${baseY} Z`
+    ].join(' ') : "";
+
+    const forecastPath = forecastPts.length ? buildSmoothPath([pts[pts.length-1], ...forecastPts]).path : "";
+    const forecastAreaPath = forecastPts.length ? [
+      `M${pts[pts.length-1].x},${baseY}`,
+      `L${pts[pts.length-1].x},${pts[pts.length-1].y}`,
+      forecastPath,
+      `L${forecastPts[forecastPts.length-1].x},${baseY}`,
+      `L${pts[pts.length-1].x},${baseY} Z`
+    ].join(' ') : "";
+
+    const trendPath = trend ? `M${xs(0)},${toY(trend.y0)} L${xs(points.length-1)},${toY(trend.y1)}` : "";
+
+    const gridTicks = 4;
+    const lines = [];
+    const labels = [];
+    for(let i=0;i<=gridTicks;i++){
+      const v = maxY * (i/gridTicks);
+      const y = ys(v);
+      lines.push(`<line x1="${padLeft}" y1="${y}" x2="${w-padRight}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`);
+      const ty = Math.max(y-2, 12);
+      labels.push(`<text x="${padLeft - 8}" y="${ty}" fill="#9fb0c8" font-size="10" text-anchor="end">${fmtCur(v)}</text>`);
+    }
+    // x-axis dates (evenly spaced labels)
+    const dateLabels = [];
+    const xTicks = Math.max(2, Math.min(5, points.length - 1));
+    for(let i=0;i<=xTicks;i++){
+      const idx = Math.round((points.length - 1) * (i / xTicks));
+      const p = points[idx];
+      const x = xs(idx);
+      const dy = h - 4;
+      const dstr = new Date(p.ts).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+      lines.push(`<line x1="${x}" y1="${h-padY}" x2="${x}" y2="${h-padY+4}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>`);
+      dateLabels.push(`<text x="${x}" y="${dy}" fill="#9fb0c8" font-size="10" text-anchor="middle">${dstr}</text>`);
+    }
+    const lastTextX = w - 12;
+    const lastTextY = lastY;
+    container.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      ${lines.join('')}
+      ${labels.join('')}
+      ${dateLabels.join('')}
+      ${areaPath?`<path class="area" d="${areaPath}" style="fill:${seriesFill};"></path>`:""}
+      ${path?`<path class="line" d="${path}" style="stroke:${seriesStroke};"></path>`:""}
+      ${forecastAreaPath?`<path class="forecast-area" d="${forecastAreaPath}"></path>`:""}
+      ${forecastPath?`<path class="forecast-line" d="${forecastPath}"></path>`:""}
+      ${trendPath?`<path class="trendline" d="${trendPath}" style="stroke:${trendColor};"></path>`:""}
+      <circle cx="${lastX}" cy="${lastY}" r="3" fill="${seriesStroke}" stroke="#0f1726" stroke-width="1.5"></circle>
+      <text x="${lastTextX}" y="${lastTextY}" fill="${'#e5ecf5'}" font-size="11" text-anchor="end">${lastLabel}</text>
+    </svg>`;
+  }
+
+  function renderVacancyTrend(team){
+    const container = document.getElementById("vacancyTrend");
+    const points = vacancyTrendByTeam[team] || [];
+    if(!points.length){ container.innerHTML = '<div class="muted" style="font-size:12px;">No trend data</div>'; return; }
+    const forecast = generateForecast(points, "vacancy");
+    const allPoints = [...points, ...forecast];
+    const w = container.clientWidth || 300;
+    const h = container.clientHeight || 180;
+    const minY = 0;
+    const vals = allPoints.map(p=>p.v).sort((a,b)=>a-b);
+    const p95 = vals.length ? vals[Math.floor(vals.length*0.95)] : 1;
+    const rawMax = Math.max(...vals, 1);
+    let maxY = Math.max(p95 || 1, points[points.length-1].v || 1, rawMax*0.6);
+    const trend = computeTrendLine(points);
+    const slopeDown = trend ? ((trend.y1 - trend.y0) < 0) : null;
+    const seriesStroke = slopeDown===null ? '#4f46e5' : (slopeDown ? '#16a34a' : '#f97316');
+    const seriesFill = slopeDown===null ? 'rgba(99,102,241,0.25)' : (slopeDown ? 'rgba(22,163,74,0.2)' : 'rgba(249,115,22,0.2)');
+    const trendColor = trend ? (slopeDown ? 'var(--accent)' : 'var(--danger)') : null;
+    if(trend){ maxY = Math.max(maxY, trend.y0, trend.y1, 1); }
+    const padLeft = 64, padRight = 90, padY = 24;
+    const xs = (i)=> padLeft + (w - padLeft - padRight) * (i/((allPoints.length-1) || 1));
+    const ys = (v)=> h - padY - (h - padY*2) * (v - minY) / (maxY - minY || 1);
+    const toY = (v)=> ys(Math.max(minY, Math.min(maxY, v)));
+    const last = points[points.length-1];
+    const lastIndex = points.length-1;
+    const lastX = xs(lastIndex), lastY = ys(last.v);
+    const lastLabel = `${last.v.toFixed(2)}%`;
+
+    const pts = points.map((p,i)=>({x:xs(i), y:ys(p.v)}));
+    const forecastPts = forecast.map((p,i)=>({x:xs(points.length + i), y:ys(p.v)}));
+    const { path } = buildSmoothPath(pts);
+    const baseY = h - padY;
+    const area = pts.length ? [
+      `M${pts[0].x},${baseY}`,
+      `L${pts[0].x},${pts[0].y}`,
+      path,
+      `L${pts[pts.length-1].x},${baseY}`,
+      `L${pts[0].x},${baseY} Z`
+    ].join(' ') : "";
+
+    const forecastPath = forecastPts.length ? buildSmoothPath([pts[pts.length-1], ...forecastPts]).path : "";
+    const forecastAreaPath = forecastPts.length ? [
+      `M${pts[pts.length-1].x},${baseY}`,
+      `L${pts[pts.length-1].x},${pts[pts.length-1].y}`,
+      forecastPath,
+      `L${forecastPts[forecastPts.length-1].x},${baseY}`,
+      `L${pts[pts.length-1].x},${baseY} Z`
+    ].join(' ') : "";
+
+    const trendPath = trend ? `M${xs(0)},${toY(trend.y0)} L${xs(points.length-1)},${toY(trend.y1)}` : "";
+
+    const gridTicks = 4;
+    const lines = [];
+    const labels = [];
+    for(let i=0;i<=gridTicks;i++){
+      const v = maxY * (i/gridTicks);
+      const y = ys(v);
+      lines.push(`<line x1="${padLeft}" y1="${y}" x2="${w-padRight}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`);
+      const ty = Math.max(y-2, 12);
+      labels.push(`<text x="${padLeft - 8}" y="${ty}" fill="#9fb0c8" font-size="10" text-anchor="end">${v.toFixed(2)}%</text>`);
+    }
+    const dateLabels = [];
+    const xTicks = Math.max(2, Math.min(5, points.length - 1));
+    for(let i=0;i<=xTicks;i++){
+      const idx = Math.round((points.length - 1) * (i / xTicks));
+      const p = points[idx];
+      const x = xs(idx);
+      const dy = h - 4;
+      const dstr = new Date(p.ts).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+      lines.push(`<line x1="${x}" y1="${h-padY}" x2="${x}" y2="${h-padY+4}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>`);
+      dateLabels.push(`<text x="${x}" y="${dy}" fill="#9fb0c8" font-size="10" text-anchor="middle">${dstr}</text>`);
+    }
+    const lastTextX = w - 12;
+    const lastTextY = lastY;
+    container.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      ${lines.join('')}
+      ${labels.join('')}
+      ${dateLabels.join('')}
+      ${area?`<path class="area" d="${area}" style="fill:${seriesFill};"></path>`:""}
+      ${path?`<path class="line" d="${path}" style="stroke:${seriesStroke};"></path>`:""}
+      ${forecastAreaPath?`<path class="forecast-area" d="${forecastAreaPath}"></path>`:""}
+      ${forecastPath?`<path class="forecast-line" d="${forecastPath}"></path>`:""}
+      ${trendPath?`<path class="trendline" d="${trendPath}" style="stroke:${trendColor};"></path>`:""}
+      <circle cx="${lastX}" cy="${lastY}" r="3" fill="${seriesStroke}" stroke="#0f1726" stroke-width="1.5"></circle>
+      <text x="${lastTextX}" y="${lastTextY}" fill="${'#e5ecf5'}" font-size="11" text-anchor="end">${lastLabel}</text>
+    </svg>`;
+  }
+
+  function renderVacancyBuildings(team){
+    const filtered = rows.filter(r => team==="All" ? true : r.team===team);
+    const agg = new Map();
+    for(const r of filtered){
+      const key = r.building || r.Building || "Unknown";
+      const entry = agg.get(key) || { building:key, team:r.team, vacant:0, ready:0, units: (PROPERTY_INFO[key]||{}).units || 0 };
+      entry.vacant += 1;
+      if(r.rentReady) entry.ready += 1;
+      agg.set(key, entry);
+    }
+    const rowsHtml = Array.from(agg.values())
+      .map(e=>{
+        const rateNum = e.units ? (e.vacant/e.units*100) : 0;
+        return { ...e, rateNum, rateLabel: e.units ? rateNum.toFixed(1)+'%' : '--' };
+      })
+      .sort((a,b)=>b.rateNum - a.rateNum)
+      .map(e=>`<tr><td>${e.building}</td><td>${e.team}</td><td>${e.vacant}</td><td>${e.ready}</td><td>${e.rateLabel}</td></tr>`)
+      .join("");
+    document.querySelector("#vacancyBuildingsTable tbody").innerHTML = rowsHtml || '<tr><td colspan="5" class="muted">No data</td></tr>';
+  }
+
+  function renderArrearsBuildings(team){
+    const filtered = arrearsRows.filter(r => team==="All" ? true : r.team===team);
+    const agg = new Map();
+    for(const r of filtered){
+      const codeKey = r.propertyCode || "";
+      const nameFromCode = codeToBuilding.get(codeKey);
+      const key = nameFromCode || r.buildingName || r.Name || r.property || "Unknown";
+      const resolvedTeam = nameFromCode ? (teamLookup.get(nameFromCode) || r.team || "Unassigned") : (r.team || "Unassigned");
+      const entry = agg.get(key) || { building:key, team:resolvedTeam, accounts:0, current:0 };
+      entry.accounts += 1;
+      entry.current += Number(r.current||0);
+      agg.set(key, entry);
+    }
+    const rowsHtml = Array.from(agg.values())
+      .sort((a,b)=>b.current - a.current)
+      .map(e=>`<tr><td>${e.building}</td><td>${e.team}</td><td>${e.accounts}</td><td>${fmtCur(e.current)}</td></tr>`)
+      .join("");
+    document.querySelector("#arrearsBuildingsTable tbody").innerHTML = rowsHtml || '<tr><td colspan="4" class="muted">No data</td></tr>';
+  }
+
+  function renderAll(team){
+    try{
+      document.querySelectorAll("#teamTabs .pill").forEach(btn => btn.classList.toggle("active", btn.dataset.team === team));
+      renderVacancy(team);
+      renderArrears(team);
+    } catch(err){
+      document.getElementById("statusLine").textContent = `Error: ${err.message || err}`;
+      console.error(err);
+    }
+  }
+
+  function tickClock(){ document.getElementById("clock").textContent = new Date().toLocaleString(undefined,{weekday:"short",hour:"2-digit",minute:"2-digit"}); }
+
+  let rotateTimer;
+  function scheduleRotate(){
+    clearInterval(rotateTimer);
+    if(!autoRotate) return;
+    rotateTimer = setInterval(()=>{
+      const idx = TEAMS.indexOf(currentTeam);
+      const next = TEAMS[(idx+1)%TEAMS.length];
+      currentTeam = next;
+      renderAll(currentTeam);
+    }, 12000);
+  }
+
+  async function start(){
+    try{
+      tickClock(); setInterval(tickClock, 1000);
+      const tabs = document.getElementById("teamTabs");
+      tabs.innerHTML = TEAMS.map(t=>`<button class="pill" data-team="${t}">${t}</button>`).join("");
+      tabs.addEventListener("click", e=>{ const team = e.target.dataset.team; if(team){ currentTeam=team; renderAll(team); scheduleRotate(); }});
+      document.getElementById("pauseBtn").addEventListener("click", ()=>{ autoRotate = !autoRotate; document.getElementById("pauseBtn").textContent = autoRotate ? "Pause auto-rotate" : "Resume auto-rotate"; scheduleRotate(); });
+
+      const hasRawVac = !!(window.RAW_VACANCY && Array.isArray(window.RAW_VACANCY.rows) && window.RAW_VACANCY.rows.length);
+      const hasRawArr = !!(window.RAW_ARREARS && Array.isArray(window.RAW_ARREARS.rows) && window.RAW_ARREARS.rows.length);
+
+      rows = hasRawVac ? enrichVacancy(window.RAW_VACANCY.rows) : [];
+      if(hasRawVac && window.RAW_VACANCY.vacantTrendByTeam){
+        const src = window.RAW_VACANCY.vacantTrendByTeam;
+        const acc = {};
+        for(const [iso,obj] of Object.entries(src||{})){
+          const ts = new Date(iso).getTime();
+          const teams = new Set([...Object.keys(obj||{}), ...TEAMS]);
+          teams.forEach(team=>{
+            const units = totalUnits(team) || 1;
+            const vacant = team==="All" ? Object.values(obj||{}).reduce((s,v)=>s+Number(v||0),0) : Number((obj||{})[team]||0);
+            const rate = (vacant/units)*100;
+            if(!acc[team]) acc[team] = [];
+            acc[team].push({ts, v: rate});
+          });
+        }
+        for(const arr of Object.values(acc)){ arr.sort((a,b)=>a.ts-b.ts); }
+        vacancyTrendByTeam = acc;
+      } else {
+        vacancyTrendByTeam = {};
+      }
+      arrearsRows = hasRawArr
+        ? window.RAW_ARREARS.rows.map(r=>({
+            ...r,
+            propertyCode: String(r.Property || r.property || "").trim(),
+            buildingName: r.buildingName || r.Name || r.property || "",
+            current:Number(r["Current Owed"]||r.current||0),
+            b0_30:Number(r["0 - 30"]||r.b0_30||0),
+            b31_60:Number(r["31 - 60"]||r.b31_60||0),
+            prepayments:Number(
+              r["Prepayments"]||
+              r["Pre-Payment"]||
+              r["Pre Payment"]||
+              r["Prepayment"]||
+              r.prepayments||r.Prepayments||0
+            ),
+            b61_90:Number(r["61 - 90"]||r.b61_90||0),
+            b91_120:Number(r["91 - 120"]||r.b91_120||0),
+            over120:Number(r["Over 120"]||r.over120||0),
+            total:Number(r["Total Owed"]||r.total||0),
+            agingStatus: r.agingStatus || r.Status || "",
+          }))
+        : [];
+      arrearsHistory = {};
+      if(hasRawArr && window.RAW_ARREARS.trendByTeam){
+        arrearsTrendByTeam = window.RAW_ARREARS.trendByTeam;
+      } else {
+        arrearsTrendByTeam = {};
+      }
+      document.getElementById("statusLine").textContent =
+        `Vacancy source: ${hasRawVac ? "RAW" : "missing"} • rows ${rows.length} | Arrears source: ${hasRawArr ? "RAW" : "missing"} • rows ${arrearsRows.length}`;
+
+      if(!rows.length) document.getElementById("statusLine").innerHTML = `<span class="error">Vacancy data missing.</span>`;
+      if(!arrearsRows.length) document.getElementById("statusLine").innerHTML += ` <span class="error">Arrears data missing.</span>`;
+
+      renderAll(currentTeam);
+      scheduleRotate();
+    } catch(err){
+      document.getElementById("statusLine").textContent = `Init error: ${err.message||err}`;
+      console.error(err);
+    }
+  }
+
+  window.addEventListener("error", (e)=>{
+    const statusEl = document.getElementById("statusLine");
+    if(statusEl) statusEl.textContent = `Error: ${e.message}`;
+  });
+
+  function buildArrearsTrends(){
+    const codeToTeam = new Map();
+    for(const [name,info] of Object.entries(PROPERTY_INFO)){
+      if(info.code) {
+        const teamEntry = AREA_PORTFOLIOS.find(p=>p.buildings.includes(name));
+        codeToTeam.set(String(info.code), teamEntry ? teamEntry.key : "Unassigned");
+      }
+    }
+    const acc = {};
+    const addPoint = (team, ts, val) => {
+      if(!acc[team]) acc[team] = new Map();
+      acc[team].set(ts, (acc[team].get(ts)||0) + val);
+    };
+    const quantile = (arr, q) => {
+      if(!arr.length) return 0;
+      const pos = (arr.length - 1) * q;
+      const base = Math.floor(pos);
+      const rest = pos - base;
+      return arr[base + 1] !== undefined ? arr[base] + rest * (arr[base + 1] - arr[base]) : arr[base];
+    };
+    for(const entry of Object.values(arrearsHistory||{})){
+      const code = String((entry.meta && entry.meta.property) || "");
+      const team = codeToTeam.get(code) || "Unassigned";
+      for(const p of entry.points || []){
+        addPoint(team, p.ts, Number(p.current||0));
+        addPoint("All", p.ts, Number(p.current||0));
+      }
+    }
+    arrearsTrendByTeam = {};
+    for(const [team,map] of Object.entries(acc)){
+      const sortedEntries = Array.from(map.entries()).sort((a,b)=>a[0]-b[0]);
+      const values = sortedEntries.map(([,v])=>v).sort((a,b)=>a-b);
+      let cutoff = Infinity;
+      if(values.length >= 4){
+        const q1 = quantile(values, 0.25);
+        const q3 = quantile(values, 0.75);
+        const iqr = q3 - q1;
+        cutoff = q3 + iqr * 1.5;
+      }
+      if(!Number.isFinite(cutoff)) cutoff = values.length ? values[values.length-1] : 1;
+      arrearsTrendByTeam[team] = sortedEntries.map(([ts,v])=>({ ts:Number(ts), v: Math.max(0, Math.min(v, cutoff)) }));
+    }
+  }
+  start();
+</script>
+</body>
+</html>

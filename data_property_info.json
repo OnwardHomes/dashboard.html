@@ -1,0 +1,138 @@
+{
+  "Anthonian Court": {
+    "code": "51",
+    "units": 53
+  },
+  "Carroll Place": {
+    "code": "52",
+    "units": 100
+  },
+  "Columbus Manor": {
+    "code": "53",
+    "units": 99
+  },
+  "Crossroads Court": {
+    "code": "54",
+    "units": 50
+  },
+  "Francis Klein Centre": {
+    "code": "55",
+    "units": 104
+  },
+  "St. James Court": {
+    "code": "56",
+    "units": 23
+  },
+  "St. Paul's Villa": {
+    "code": "57",
+    "units": 50
+  },
+  "Murdoch Manor": {
+    "code": "58",
+    "units": 360
+  },
+  "George C King Tower": {
+    "code": "59",
+    "units": 143
+  },
+  "Alice Bissett Place": {
+    "code": "98",
+    "units": 114
+  },
+  "Bishop's Manor": {
+    "code": "80",
+    "units": 104
+  },
+  "Bob Ward Residence": {
+    "code": "79",
+    "units": 61
+  },
+  "Columbus Place": {
+    "code": "81",
+    "units": 77
+  },
+  "Heritage Gardens": {
+    "code": "75",
+    "units": 95
+  },
+  "Horizon 8": {
+    "code": "93",
+    "units": 49
+  },
+  "Horizon 12": {
+    "code": "96",
+    "units": 33
+  },
+  "Horizon 14": {
+    "code": "84",
+    "units": 60
+  },
+  "Horizon Park": {
+    "code": "86",
+    "units": 35
+  },
+  "Horizon Ridge": {
+    "code": "76",
+    "units": 65
+  },
+  "Horizon View": {
+    "code": "83",
+    "units": 201
+  },
+  "Horizon West": {
+    "code": "85",
+    "units": 108
+  },
+  "Place Cam Helene": {
+    "code": "97",
+    "units": 41
+  },
+  "The Elan": {
+    "code": "73",
+    "units": 62
+  },
+  "Triwood": {
+    "code": "77",
+    "units": 26
+  },
+  "Horizon 31": {
+    "code": "74",
+    "units": 29
+  },
+  "Albert House": {
+    "code": "87",
+    "units": 1
+  },
+  "Glasswaters House": {
+    "code": "90",
+    "units": 1
+  },
+  "Good Cheer House": {
+    "code": "94",
+    "units": 1
+  },
+  "Hamilton House": {
+    "code": "92",
+    "units": 1
+  },
+  "Hunter House": {
+    "code": "72",
+    "units": 1
+  },
+  "Keith House": {
+    "code": "88",
+    "units": 3
+  },
+  "Marguerite House": {
+    "code": "71",
+    "units": 1
+  },
+  "Miner House": {
+    "code": "89",
+    "units": 1
+  },
+  "Roberts House": {
+    "code": "70",
+    "units": 1
+  }
+}

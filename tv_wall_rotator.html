@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TV Wall Rotator</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #0b0f14;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: #d7dde6;
+    }
+    .topbar {
+      position: fixed;
+      left: 0; right: 0; top: 0;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      color: #d7dde6;
+      background: rgba(0, 0, 0, .55);
+      z-index: 9999;
+      font-size: 14px;
+    }
+    .hint { opacity: .75; font-size: 12px; }
+    .status { opacity: .8; }
+
+    .stage {
+      position: fixed;
+      top: 44px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #0b0f14;
+    }
+    .slide {
+      width: 100%;
+      height: 100%;
+      display: none;
+      position: relative;
+    }
+    .slide.active { display: block; }
+    .slide iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #fff;
+    }
+    .badge {
+      position: absolute;
+      left: 14px;
+      bottom: 14px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, .65);
+      color: #d7dde6;
+      font-size: 13px;
+      letter-spacing: 0.2px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    /* Disable interactions for TV screens */
+    iframe { pointer-events: none; }
+
+    .alert {
+      position: fixed;
+      top: 44px;
+      left: 0; right: 0;
+      padding: 10px 14px;
+      background: #2d1f1f;
+      color: #ffb3b3;
+      font-size: 13px;
+      z-index: 9998;
+      box-shadow: inset 0 -1px 0 rgba(255,255,255,.08);
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div><strong id="slideName"></strong> <span class="status" id="status"></span></div>
+    <div class="hint">Keys: Left/Right arrows for next/prev, Space to pause, R to refresh now</div>
+    <div id="clock"></div>
+  </div>
+  <div class="alert" id="alert" hidden></div>
+
+  <div class="stage">
+    <div class="slide full" id="slide_ar">
+      <iframe id="frame_ar"></iframe>
+      <div class="badge" id="badge_ar"></div>
+    </div>
+
+    <div class="slide full" id="slide_vac">
+      <iframe id="frame_vac"></iframe>
+      <div class="badge" id="badge_vac"></div>
+    </div>
+  </div>
+
+<script>
+  // 1) PUT YOUR LIVE DASHBOARD URLS HERE
+  const URL_AR  = "http://100.119.69.20:8001/ar_aging_tracker9_live_fixed.html";
+  const URL_VAC = "http://100.119.69.20:8000/vacancy%20tracker_v3_live3.html";
+
+  // 2) FILTER SETS PER DASHBOARD (these drive the rotation) - replace keys/values if your dashboards use different param names
+  //    Each entry is { label: "...", params: { queryParam: "value", ... } }
+  const FILTER_SETS = {
+    ar: [
+      // AR Aging Tracker: try multiple param names in case the dashboard expects a different key
+      { label: "Team: RS1", params: { team: "RS1", Teams: "RS1", teamName: "RS1" } },
+      { label: "Team: RS2", params: { team: "RS2", Teams: "RS2", teamName: "RS2" } },
+      { label: "Team: RS3", params: { team: "RS3", Teams: "RS3", teamName: "RS3" } },
+      { label: "Team: RS4", params: { team: "RS4", Teams: "RS4", teamName: "RS4" } },
+    ],
+    vac: [
+      // Vacancy Tracker: try multiple param names
+      { label: "Area Manager: Kate", params: { areaManager: "Kate", manager: "Kate", team: "Kate" } },
+      { label: "Area Manager: Lisa", params: { areaManager: "Lisa", manager: "Lisa", team: "Lisa" } },
+      { label: "Area Manager: RS3", params: { areaManager: "RS3", manager: "RS3", team: "RS3" } },
+      { label: "Area Manager: RS4", params: { areaManager: "RS4", manager: "RS4", team: "RS4" } },
+    ]
+  };
+
+  // 3) ROTATION TIMINGS (seconds) PER DASHBOARD
+  const DASHBOARDS = [
+    { id: "ar",  name: "AR Aging Tracker", baseUrl: URL_AR,  seconds: 45 },
+    { id: "vac", name: "Vacancy Tracker",  baseUrl: URL_VAC, seconds: 45 },
+  ];
+
+  // 4) AUTO-REFRESH CURRENT SLIDE
+  const REFRESH_EVERY_MS = 5 * 60 * 1000; // 5 minutes
+
+  const slideNameEl = document.getElementById("slideName");
+  const statusEl = document.getElementById("status");
+  const frames = {
+    ar: document.getElementById("frame_ar"),
+    vac: document.getElementById("frame_vac")
+  };
+  const badges = {
+    ar: document.getElementById("badge_ar"),
+    vac: document.getElementById("badge_vac")
+  };
+  const latestFilters = {};
+
+  // Normalize dashboards with origin for postMessage targeting
+  const dashboards = DASHBOARDS.map(d => ({ ...d, origin: new URL(d.baseUrl).origin }));
+
+  // Build rotation list: for each dashboard, cycle through its filter sets (or All)
+  const combos = dashboards.flatMap(dash => {
+    const filters = FILTER_SETS[dash.id] && FILTER_SETS[dash.id].length
+      ? FILTER_SETS[dash.id]
+      : [{ label: "All", params: {} }];
+    return filters.map(filter => ({ dash, filter }));
+  });
+
+  const missingFilters = DASHBOARDS
+    .filter(d => !FILTER_SETS[d.id] || FILTER_SETS[d.id].length === 0)
+    .map(d => d.name);
+  const alertEl = document.getElementById("alert");
+  if (missingFilters.length) {
+    alertEl.textContent = `No filters configured for: ${missingFilters.join(", ")}. Add entries to FILTER_SETS to rotate specific portfolios/teams.`;
+    alertEl.hidden = false;
+  }
+
+  let idx = 0;
+  let timer = null;
+  let paused = false;
+
+  // PostMessage helper so dashboards (if they listen) can set filters without relying on query params
+  function sendFilterMessage(dash, filter) {
+    const iframe = frames[dash.id];
+    if (!iframe || !iframe.contentWindow) return;
+    latestFilters[dash.id] = filter;
+    try {
+      iframe.contentWindow.postMessage(
+        { type: "tvwall:setFilter", filter: filter.params || {}, label: filter.label },
+        dash.origin || "*"
+      );
+    } catch (e) {
+      // Ignore postMessage errors (e.g., if iframe not ready yet)
+    }
+  }
+
+  function buildUrl(baseUrl, filter) {
+    const url = new URL(baseUrl);
+    Object.entries(filter.params || {}).forEach(([k, v]) => {
+      if (v === null || v === undefined || v === "") return;
+      // allow array of values for a key
+      if (Array.isArray(v)) {
+        v.forEach(val => {
+          if (val !== null && val !== undefined && val !== "") {
+            url.searchParams.set(k, val);
+          }
+        });
+      } else {
+        url.searchParams.set(k, v);
+      }
+    });
+    url.searchParams.set("tv", Date.now()); // cache-buster
+    return url.toString();
+  }
+
+  function showSlide(nextIndex, opts = {}) {
+    if (!combos.length) return;
+    idx = (nextIndex + combos.length) % combos.length;
+    const { dash, filter } = combos[idx];
+
+    document.querySelectorAll(".slide").forEach(s => s.classList.remove("active"));
+    const slideEl = document.getElementById(`slide_${dash.id}`);
+    slideEl.classList.add("active");
+
+    const iframe = frames[dash.id];
+    const nextUrl = buildUrl(dash.baseUrl, filter);
+    if (opts.force || iframe.dataset.loadedSrc !== nextUrl) {
+      iframe.src = nextUrl;
+      iframe.dataset.loadedSrc = nextUrl;
+    }
+
+    // Send filter hint to iframe (if the dashboard listens for postMessage)
+    sendFilterMessage(dash, filter);
+
+    badges[dash.id].textContent = `Filter: ${filter.label}`;
+    slideNameEl.textContent = `${dash.name} - ${filter.label}`;
+    statusEl.textContent = paused ? " (paused)" : "";
+    scheduleNext();
+  }
+
+  function scheduleNext() {
+    if (timer) clearTimeout(timer);
+    if (paused) return;
+    const current = combos[idx];
+    timer = setTimeout(() => showSlide(idx + 1), current.dash.seconds * 1000);
+  }
+
+  function refreshCurrent() {
+    showSlide(idx, { force: true });
+  }
+
+  // When an iframe finishes loading, resend the latest filter for that dashboard
+  Object.entries(frames).forEach(([id, iframe]) => {
+    iframe.addEventListener("load", () => {
+      const dash = dashboards.find(d => d.id === id);
+      if (!dash) return;
+      const filter = latestFilters[id];
+      if (filter) sendFilterMessage(dash, filter);
+    });
+  });
+
+  // Clock
+  function tickClock() {
+    const d = new Date();
+    document.getElementById("clock").textContent =
+      d.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit", month: "short", day: "2-digit" });
+  }
+  setInterval(tickClock, 1000);
+  tickClock();
+
+  // Controls
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight") showSlide(idx + 1);
+    if (e.key === "ArrowLeft") showSlide(idx - 1);
+    if (e.key === " ") {
+      paused = !paused;
+      statusEl.textContent = paused ? " (paused)" : "";
+      scheduleNext();
+      e.preventDefault();
+    }
+    if (e.key.toLowerCase() === "r") refreshCurrent();
+  });
+
+  // Start
+  showSlide(0, { force: true });
+  setInterval(refreshCurrent, REFRESH_EVERY_MS);
+</script>
+</body>
+</html>

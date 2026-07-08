@@ -1,0 +1,240 @@
+[
+  {
+    "name": "Anthonian Court",
+    "type": "Managed Properties",
+    "yardi": "51",
+    "abbr": "AC",
+    "units": 52
+  },
+  {
+    "name": "Carroll Place",
+    "type": "Managed Properties",
+    "yardi": "52",
+    "abbr": "CaP",
+    "units": 100
+  },
+  {
+    "name": "Columbus Manor",
+    "type": "Managed Properties",
+    "yardi": "53",
+    "abbr": "CM",
+    "units": 99
+  },
+  {
+    "name": "Crossroads Court",
+    "type": "Managed Properties",
+    "yardi": "54",
+    "abbr": "CC",
+    "units": 50
+  },
+  {
+    "name": "Francis Klein Centre",
+    "type": "Managed Properties",
+    "yardi": "55",
+    "abbr": "FKC",
+    "units": 104
+  },
+  {
+    "name": "St. James Court",
+    "type": "Managed Properties",
+    "yardi": "56",
+    "abbr": "SJC",
+    "units": 23
+  },
+  {
+    "name": "St. Paul's Villa",
+    "type": "Managed Properties",
+    "yardi": "57",
+    "abbr": "SPV",
+    "units": 50
+  },
+  {
+    "name": "Murdoch Manor",
+    "type": "Managed Properties",
+    "yardi": "58",
+    "abbr": "MM",
+    "units": 360
+  },
+  {
+    "name": "George C King Tower",
+    "type": "Managed Properties",
+    "yardi": "59",
+    "abbr": "KT",
+    "units": 143
+  },
+  {
+    "name": "Alice Bissett Place",
+    "type": "Owned Properties",
+    "yardi": "98",
+    "abbr": "ABP",
+    "units": 113
+  },
+  {
+    "name": "Bishop's Manor",
+    "type": "Owned Properties",
+    "yardi": "80",
+    "abbr": "BM",
+    "units": 104
+  },
+  {
+    "name": "Bob Ward Residence",
+    "type": "Owned Properties",
+    "yardi": "79",
+    "abbr": "BWR",
+    "units": 61
+  },
+  {
+    "name": "Columbus Place",
+    "type": "Owned Properties",
+    "yardi": "81",
+    "abbr": "CP",
+    "units": 77
+  },
+  {
+    "name": "Heritage Gardens",
+    "type": "Owned Properties",
+    "yardi": "75",
+    "abbr": "HG",
+    "units": 95
+  },
+  {
+    "name": "Horizon 8",
+    "type": "Owned Properties",
+    "yardi": "93",
+    "abbr": "H8",
+    "units": 50
+  },
+  {
+    "name": "Horizon 12",
+    "type": "Owned Properties",
+    "yardi": "96",
+    "abbr": "H12",
+    "units": 34
+  },
+  {
+    "name": "Horizon 14",
+    "type": "Owned Properties",
+    "yardi": "84",
+    "abbr": "H14",
+    "units": 60
+  },
+  {
+    "name": "Horizon Park",
+    "type": "Owned Properties",
+    "yardi": "86",
+    "abbr": "HP",
+    "units": 35
+  },
+  {
+    "name": "Horizon Ridge",
+    "type": "Owned Properties",
+    "yardi": "76",
+    "abbr": "HR",
+    "units": 65
+  },
+  {
+    "name": "Horizon View",
+    "type": "Owned Properties",
+    "yardi": "83",
+    "abbr": "HV",
+    "units": 201
+  },
+  {
+    "name": "Horizon West",
+    "type": "Owned Properties",
+    "yardi": "85",
+    "abbr": "HW",
+    "units": 108
+  },
+  {
+    "name": "Place Cam Helene",
+    "type": "Owned Properties",
+    "yardi": "97",
+    "abbr": "PCH",
+    "units": 41
+  },
+  {
+    "name": "The Elan",
+    "type": "Owned Properties",
+    "yardi": "73",
+    "abbr": "EL",
+    "units": 62
+  },
+  {
+    "name": "Triwood",
+    "type": "Owned Properties",
+    "yardi": "77",
+    "abbr": "TW",
+    "units": 26
+  },
+  {
+    "name": "Horizon 31",
+    "type": "Owned Properties",
+    "yardi": "74",
+    "abbr": "H31",
+    "units": 29
+  },
+  {
+    "name": "Albert House",
+    "type": "Owned Properties",
+    "yardi": "87",
+    "abbr": "ALH",
+    "units": 1
+  },
+  {
+    "name": "Glasswaters House",
+    "type": "Owned Properties",
+    "yardi": "90",
+    "abbr": "GLH",
+    "units": 1
+  },
+  {
+    "name": "Good Cheer House",
+    "type": "Owned Properties",
+    "yardi": "94",
+    "abbr": "GCH",
+    "units": 1
+  },
+  {
+    "name": "Hamilton House",
+    "type": "Owned Properties",
+    "yardi": "92",
+    "abbr": "HNLH",
+    "units": 1
+  },
+  {
+    "name": "Hunter House",
+    "type": "Owned Properties",
+    "yardi": "72",
+    "abbr": "HNLH2",
+    "units": 1
+  },
+  {
+    "name": "Keith House",
+    "type": "Owned Properties",
+    "yardi": "88",
+    "abbr": "KH",
+    "units": 3
+  },
+  {
+    "name": "Marguerite House",
+    "type": "Owned Properties",
+    "yardi": "71",
+    "abbr": "MH",
+    "units": 1
+  },
+  {
+    "name": "Miner House",
+    "type": "Owned Properties",
+    "yardi": "89",
+    "abbr": "MIH",
+    "units": 1
+  },
+  {
+    "name": "Roberts House",
+    "type": "Owned Properties",
+    "yardi": "70",
+    "abbr": "RH",
+    "units": 1
+  }
+]

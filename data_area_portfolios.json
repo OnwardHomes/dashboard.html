@@ -1,0 +1,60 @@
+[
+  {
+    "key": "RS1",
+    "areaManager": "RS1",
+    "buildings": [
+      "Anthonian Court",
+      "Carroll Place",
+      "Columbus Manor",
+      "Crossroads Court",
+      "Francis Klein Centre",
+      "St. James Court",
+      "St. Paul's Villa"
+    ]
+  },
+  {
+    "key": "RS2",
+    "areaManager": "RS2",
+    "buildings": [
+      "Bob Ward Residence",
+      "Heritage Gardens",
+      "Horizon Park",
+      "Horizon View",
+      "Horizon West",
+      "Horizon 12",
+      "Place Cam Helene",
+      "Albert House",
+      "Glasswaters House",
+      "Good Cheer House",
+      "Hamilton House",
+      "Hunter House",
+      "Keith House",
+      "Marguerite House",
+      "Miner House",
+      "Roberts House",
+      "Horizon 31"
+    ]
+  },
+  {
+    "key": "RS3",
+    "areaManager": "RS3",
+    "buildings": [
+      "Alice Bissett Place",
+      "Bishop's Manor",
+      "Columbus Place",
+      "Horizon Ridge",
+      "Horizon 8",
+      "Horizon 14",
+      "The Elan",
+      "Triwood"
+    ]
+  },
+  {
+    "key": "RS4",
+    "areaManager": "RS4",
+    "buildings": [
+      "Murdoch Manor",
+      "George C King Tower"
+    ]
+  }
+]
